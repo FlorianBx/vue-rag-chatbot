@@ -14,7 +14,6 @@ import ChatBot from './components/ChatBot.vue';
     </div>
     
     <footer class="mt-10 text-center text-gray-500 text-sm">
-      <p>Powered by Ollama, Qwen, and LangChain</p>
     </footer>
   </main>
 </template>
