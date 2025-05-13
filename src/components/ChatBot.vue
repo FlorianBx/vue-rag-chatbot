@@ -9,6 +9,7 @@ const {
   isIndexLoaded,
   generateEmbedding,
   searchMostSimilar,
+  generateAnswer,
 } = useSemanticSearch();
 
 const isLoading = ref(false);
@@ -27,7 +28,7 @@ async function sendMessage() {
 
     const contextText = similarPassages.length
       ? similarPassages
-          .map((searchResult, passageIndex) => `- ${searchResult.text}`)
+          .map((searchResult) => `- ${searchResult.text}`)
           .join('\n')
       : "Aucun passage pertinent trouvé.";
 
@@ -43,7 +44,8 @@ async function sendMessage() {
       Réponse :
     `.trim();
 
-    messages.value.push({ role: 'assistant', content: `\`\`\`\n${systemPrompt}\n\`\`\`` });
+    const aiAnswer = await generateAnswer(systemPrompt);
+    messages.value.push({ role: 'assistant', content: aiAnswer });
   } catch (_error) {
     messages.value.push({ role: 'assistant', content: "Erreur lors de la recherche contextuelle." });
   } finally {
@@ -56,15 +58,13 @@ async function sendMessage() {
 <div class="flex flex-col gap-4 h-[80vh] border border-gray-200 rounded-lg shadow-sm overflow-hidden">
   <div class="flex-1 p-5 overflow-y-auto bg-gray-50 text-slate-800 flex flex-col gap-3">
     <div 
-      v-for="(message, idx) in messages" 
-      :key="idx"
+      v-for="(message, index) in messages" 
+      :key="index"
       :class="[
         'p-3 rounded-lg max-w-[70%] break-words', 
         message.role === 'user' 
           ? 'bg-blue-600 text-white self-end' 
-          : message.role === 'system'
-            ? 'bg-amber-100 border border-amber-300 self-center text-amber-800 text-sm'
-            : 'bg-white border border-gray-200 self-start shadow-sm'
+          : 'bg-white border border-gray-200 self-start shadow-sm'
       ]"
       v-html="message.content"
     >

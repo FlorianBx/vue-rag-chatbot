@@ -70,12 +70,28 @@ export function useSemanticSearch() {
     return results.slice(0, howMany);
   }
 
+  async function generateAnswer(prompt: string): Promise<string> {
+  const response = await fetch('http://localhost:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'mistral',
+      prompt,
+      stream: false
+    })
+  });
+  if (!response.ok) throw new Error('Erreur IA');
+  const data = await response.json();
+  return data.response;
+}
+
   return {
     index,
     isIndexLoaded,
     loadError,
     reloadIndex: loadIndex,
     generateEmbedding,
+    generateAnswer,
     searchMostSimilar
   };
 }
