@@ -4,13 +4,15 @@ import { Marked } from 'marked';
 import { markedHighlight } from "marked-highlight";
 import hljs from 'highlight.js';
 import { useSemanticSearch } from '@/composables/useSemanticSearch';
+import { useStorage } from '@vueuse/core'
+
 
 interface Message {
   "role": 'user' | 'assistant';
   "content": string;
 }
 
-const messages = ref<Message[]>([]);
+const messages = useStorage<Message[]>('chatHistory', [])
 const input = ref('');
 
 const {
