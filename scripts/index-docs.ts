@@ -28,7 +28,11 @@ function splitIntoParagraphs(text: string): string[] {
   return text
     .split(/\n\s*\n/g)
     .map(p => p.trim())
-    .filter(p => p.length > 30);
+    .filter(p => p.length > 30)
+    .filter((p: string) =>
+      p.length > 30
+      && !/^#+\s/.test(p)
+    );
 }
 
 async function getEmbedding(text: string, model = 'nomic-embed-text') {
@@ -45,10 +49,13 @@ async function buildRagIndex() {
   const docsDir = path.resolve(__dirname, '../vue-docs');
   const docs = readAllMarkdownFiles(docsDir);
   const index: any[] = [];
+  const windowSize = 2;
+
   for (const doc of docs) {
     const paragraphs = splitIntoParagraphs(doc.content);
-    for (let i = 0; i < paragraphs.length; i++) {
-      const text = paragraphs[i];
+    for (let i = 0; i < paragraphs.length - windowSize + 1; i++) {
+      // On concatène 2 paragraphes adjacents
+      const text = paragraphs.slice(i, i + windowSize).join('\n\n');
       try {
         const embedding = await getEmbedding(text);
         index.push({ file: doc.file, chunk: i, text, embedding });
