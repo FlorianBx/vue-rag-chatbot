@@ -16,7 +16,7 @@ export interface SearchResult {
 }
 
 const INDEX_PATH = '/data/vue-docs-embeddings.json';
-
+// TODO: EDIT SIZE OF CHUNK
 export function useSemanticSearch() {
   const index = ref<Chunk[]>([]);
   const isIndexLoaded = ref(false);
@@ -60,30 +60,50 @@ export function useSemanticSearch() {
     return dot === 0 || normA === 0 || normB === 0 ? 0 : dot / (normA * normB);
   }
 
-  function searchMostSimilar(questionEmbedding: number[], howMany = 3): SearchResult[] {
-    if (!index.value.length) return [];
-    const results: SearchResult[] = index.value.map(chunk => ({
-      text: chunk.text,
-      similarity: cosineSimilarity(chunk.embedding, questionEmbedding)
-    }));
-    results.sort((a, b) => b.similarity - a.similarity);
-    return results.slice(0, howMany);
-  }
+function searchMostSimilar(questionEmbedding: number[], howMany = 15): SearchResult[] {
+  if (!index.value.length) return [];
+  const results: SearchResult[] = index.value.map(chunk => ({
+    text: chunk.text,
+    similarity: cosineSimilarity(chunk.embedding, questionEmbedding),
+    file: chunk.file,
+    chunk: chunk.chunk
+  }));
+  results.sort((a, b) => b.similarity - a.similarity);
+
+  return results.slice(0, howMany);
+}
 
   async function generateAnswer(prompt: string): Promise<string> {
-  const response = await fetch('http://localhost:11434/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'mistral',
-      prompt,
-      stream: false
-    })
-  });
-  if (!response.ok) throw new Error('Erreur IA');
-  const data = await response.json();
-  return data.response;
-}
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${import.meta.env.VITE_AI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        "model": "meta-llama/llama-3.1-70b-instruct",
+        "messages": [
+          {
+            "role": "user",
+            "content": prompt 
+          }
+        ]
+      })
+    });
+    // const response = await fetch('http://localhost:11434/api/generate', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({
+    //     model: 'mistral',
+    //     prompt,
+    //     stream: false
+    //   })
+    // });
+    if (!response.ok) throw new Error('Erreur IA');
+    const data = await response.json();
+    console.log(data)
+    return data.choices[0].message;
+  }
 
   return {
     index,

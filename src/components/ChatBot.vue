@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { Marked } from 'marked';
+import { markedHighlight } from "marked-highlight";
+import hljs from 'highlight.js';
 import { useSemanticSearch } from '@/composables/useSemanticSearch';
 
-const messages = ref<{ role: 'user' | 'assistant'; content: string }[]>([]);
+interface Message {
+  "role": 'user' | 'assistant';
+  "content": string;
+}
+
+const messages = ref<Message[]>([]);
 const input = ref('');
 
 const {
@@ -13,6 +21,17 @@ const {
 } = useSemanticSearch();
 
 const isLoading = ref(false);
+
+const marked = new Marked(
+  markedHighlight({
+	emptyLangClass: 'hljs',
+    langPrefix: 'hljs language-',
+    highlight(code, lang) {
+      const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+      return hljs.highlight(code, { language }).value;
+    }
+  })
+);
 
 async function sendMessage() {
   if (!input.value.trim() || isLoading.value || !isIndexLoaded.value) return;
@@ -33,8 +52,8 @@ async function sendMessage() {
       : "Aucun passage pertinent trouvé.";
 
     const systemPrompt = `
-      Vous êtes un assistant. Utilisez ce contexte pour répondre à la question de l'utilisateur.
-      Si la réponse n'est pas dans le contexte, répondez que vous ne savez pas.
+      Tu es un assistant. Utilises ce contexte pour répondre à la question de l'utilisateur.
+      Si la réponse n'est pas dans le contexte, répondez que tu ne sais pas.
 
       Contexte :
       ${contextText}
@@ -45,7 +64,9 @@ async function sendMessage() {
     `.trim();
 
     const aiAnswer = await generateAnswer(systemPrompt);
-    messages.value.push({ role: 'assistant', content: aiAnswer });
+    const answerInMarkdown = await marked.parse(aiAnswer.content);
+    console.log(answerInMarkdown);
+    messages.value.push({ role: aiAnswer.role, content: answerInMarkdown });
   } catch (_error) {
     messages.value.push({ role: 'assistant', content: "Erreur lors de la recherche contextuelle." });
   } finally {
@@ -55,8 +76,8 @@ async function sendMessage() {
 </script>
 
 <template>
-<div class="flex flex-col gap-4 h-[80vh] border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-  <div class="flex-1 p-5 overflow-y-auto bg-gray-50 text-slate-800 flex flex-col gap-3">
+<div class="flex flex-col gap-4 h-[80vh] rounded-lg shadow-sm overflow-hidden">
+  <div class="flex-1 p-5 overflow-y-auto bg-stone-900 text-stone-50 flex flex-col gap-3">
     <div 
       v-for="(message, index) in messages" 
       :key="index"
@@ -64,21 +85,21 @@ async function sendMessage() {
         'p-3 rounded-lg max-w-[70%] break-words', 
         message.role === 'user' 
           ? 'bg-blue-600 text-white self-end' 
-          : 'bg-white border border-gray-200 self-start shadow-sm'
+          : 'bg-stone-800 border border-gray-200 self-start shadow-sm'
       ]"
-      v-html="message.content"
+      v-dompurify-html="message.content"
     >
     </div>
-    <div v-if="isLoading" class="self-start p-3 rounded-lg bg-white border border-gray-200 flex items-center space-x-1">
-      <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-      <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-      <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+    <div v-if="isLoading" class="self-start p-3 rounded-lg bg-stone-900 border border-gray-200 flex items-center space-x-1">
+      <div class="w-2 h-2 bg-gray-50 rounded-full animate-bounce"></div>
+      <div class="w-2 h-2 bg-gray-50 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+      <div class="w-2 h-2 bg-gray-50 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
     </div>
     <div v-if="!isIndexLoaded" class="self-center text-gray-500 text-sm">
       Chargement de la base de docs...
     </div>
   </div>
-  <div class="flex gap-4 p-4 bg-white text-slate-800 border-t border-gray-200">
+  <div class="flex gap-4 p-4 bg-stone-900 text-stone-50 border-t border-gray-200">
     <input
       v-model="input"
       @keyup.enter="sendMessage"

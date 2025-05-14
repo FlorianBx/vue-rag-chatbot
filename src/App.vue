@@ -9,7 +9,7 @@ import ChatBot from './components/ChatBot.vue';
       <p class="text-gray-400">Ask any question about Vue.js and get answers from the documentation</p>
     </header>
     
-    <div class="max-w-3xl mx-auto">
+    <div class="w-full mx-auto">
       <ChatBot />
     </div>
     
